@@ -12,7 +12,7 @@ class Model():
             args.batch_size = 1
             args.seq_length = 1
 
-        # choose different rnn cell 
+        # choose different rnn cell
         if args.model == 'rnn':
             cell_fn = rnn.RNNCell
         elif args.model == 'gru':
@@ -49,7 +49,8 @@ class Model():
             softmax_b = tf.get_variable("softmax_b", [args.vocab_size])
 
         # transform input to embedding
-        embedding = tf.get_variable("embedding", [args.vocab_size, args.rnn_size])
+        embedding = tf.get_variable(
+            "embedding", [args.vocab_size, args.rnn_size])
         inputs = tf.nn.embedding_lookup(embedding, self.input_data)
 
         # dropout beta testing: double check which one should affect next line
@@ -67,7 +68,8 @@ class Model():
             return tf.nn.embedding_lookup(embedding, prev_symbol)
 
         # rnn_decoder to generate the ouputs and final state. When we are not training the model, we use the loop function.
-        outputs, last_state = legacy_seq2seq.rnn_decoder(inputs, self.initial_state, cell, loop_function=loop if not training else None, scope='rnnlm')
+        outputs, last_state = legacy_seq2seq.rnn_decoder(
+            inputs, self.initial_state, cell, loop_function=loop if not training else None, scope='rnnlm')
         output = tf.reshape(tf.concat(outputs, 1), [-1, args.rnn_size])
 
         # output layer
@@ -76,9 +78,9 @@ class Model():
 
         # loss is calculate by the log loss and taking the average.
         loss = legacy_seq2seq.sequence_loss_by_example(
-                [self.logits],
-                [tf.reshape(self.targets, [-1])],
-                [tf.ones([args.batch_size * args.seq_length])])
+            [self.logits],
+            [tf.reshape(self.targets, [-1])],
+            [tf.ones([args.batch_size * args.seq_length])])
         with tf.name_scope('cost'):
             self.cost = tf.reduce_sum(loss) / args.batch_size / args.seq_length
         self.final_state = last_state
@@ -87,7 +89,7 @@ class Model():
 
         # calculate gradients
         grads, _ = tf.clip_by_global_norm(tf.gradients(self.cost, tvars),
-                args.grad_clip)
+                                          args.grad_clip)
         with tf.name_scope('optimizer'):
             optimizer = tf.train.AdamOptimizer(self.lr)
 
@@ -99,20 +101,28 @@ class Model():
         tf.summary.histogram('loss', loss)
         tf.summary.scalar('train_loss', self.cost)
 
-    def sample(self, sess, chars, vocab, num=200, prime='The ', sampling_type=1):
-        state = sess.run(self.cell.zero_state(1, tf.float32))
-        for char in prime[:-1]:
-            x = np.zeros((1, 1))
-            x[0, 0] = vocab[char]
-            feed = {self.input_data: x, self.initial_state: state}
-            [state] = sess.run([self.final_state], feed)
+    def sample(self, sess, chars, vocab, num=200, prime='The ', sampling_type=1, sample_rand=1.0, state_last=None, run_prime=True):
+        ret = u''
+        if state_last is None:
+            state = sess.run(self.cell.zero_state(1, tf.float32))
+        else:
+            state = state_last
+        if run_prime:
+            for char in prime[:-1]:
+                x = np.zeros((1, 1))
+                x[0, 0] = vocab[char]
+                feed = {self.input_data: x, self.initial_state: state}
+                [state] = sess.run([self.final_state], feed)
+            ret = prime
 
         def weighted_pick(weights):
             t = np.cumsum(weights)
             s = np.sum(weights)
-            return(int(np.searchsorted(t, np.random.rand(1)*s)))
+            v = s*(np.random.rand(1)*sample_rand+(1-sample_rand))
+            # print(t, s, np.random.rand(1)*s)
+            return(int(np.searchsorted(t, v)))
 
-        ret = prime
+        # ret = prime
         char = prime[-1]
         for _ in range(num):
             x = np.zeros((1, 1))
@@ -134,4 +144,15 @@ class Model():
             pred = chars[sample]
             ret += pred
             char = pred
+        return [ret, state]
+
+    def input_sample(self, sess, vocab, prime, state_last):
+        state = state_last
+        ret = prime
+        for char in prime[:-1]:
+            # print(char)
+            x = np.zeros((1, 1))
+            x[0, 0] = vocab[char]
+            feed = {self.input_data: x, self.initial_state: state}
+            [state] = sess.run([self.final_state], feed)
         return ret
