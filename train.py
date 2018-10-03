@@ -51,7 +51,7 @@ parser.add_argument('--learning_rate', type=float, default=0.002,
                     help='learning rate')
 parser.add_argument('--decay_rate', type=float, default=0.97,
                     help='decay rate for rmsprop')
-parser.add_argument('--output_keep_prob', type=float, default=0.5,
+parser.add_argument('--output_keep_prob', type=float, default=0.7,
                     help='probability of keeping weights in the hidden layer')
 parser.add_argument('--input_keep_prob', type=float, default=0.8,
                     help='probability of keeping weights in the input layer')
