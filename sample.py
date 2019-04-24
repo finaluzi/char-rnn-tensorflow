@@ -12,18 +12,18 @@ from six import text_type
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--save_dir', type=str, default='save',
+parser.add_argument('--save_dir', type=str, default='save/tangpin2',
                     help='model directory to store checkpointed models')
-parser.add_argument('-n', type=int, default=30,
+parser.add_argument('-n', type=int, default=1000,
                     help='number of characters to sample')
-parser.add_argument('--prime', type=text_type, default=u'胡',
+parser.add_argument('--prime', type=text_type, default=u'l',
                     help='prime text')
 parser.add_argument('--sample', type=int, default=1,
                     help='0 to use max at each timestep, 1 to sample at '
                          'each timestep, 2 to sample on spaces')
 parser.add_argument('--rand', type=float, default=1.0,
                     help='sample in rand')
-parser.add_argument('--block', type=int, default=5,
+parser.add_argument('--block', type=int, default=100,
                     help='sample block')
 parser.add_argument('--input', type=bool, default=False,
                     help='human input after block')
@@ -69,7 +69,7 @@ def sample(args):
                 prime_next = temp_output[0].encode(
                     'utf-8').decode(encoding='utf-8')
                 state_last = temp_output[1]
-                print(prime_next)
+                print(prime_next, end='')
                 if args.input:
                     text = input("input:")
                     if len(text) > 0:
